@@ -16,16 +16,16 @@ const refineFile = async (fileId, dataEncryptionKey) => {
     const url = `${CONFIG.refinementServiceApiBaseUrl}/refine`;
     console.log(`Refining file ${fileId} with URL: ${url}`);
 
+    // https://docs.pinata.cloud/api-reference/endpoint/ipfs/pin-json-to-ipfs
     const body = {
       file_id: fileId,
       encryption_key: dataEncryptionKey,
       refiner_id: CONFIG.refinerId,
       env_vars: {
-        PINATA_API_KEY: CONFIG.pinataApiKey,
-        PINATA_API_SECRET: CONFIG.pinataApiSecret,
+        PINATA_API_JWT: CONFIG.pinataApiJwt,
       },
     };
-    
+
     const headers = {
       Accept: "application/json, text/plain, */*",
       "Accept-Language": "en-US",
@@ -35,7 +35,7 @@ const refineFile = async (fileId, dataEncryptionKey) => {
 
     const response = await axios.post(url, body, { headers });
     console.log(`Successfully refined file ${fileId}`);
-    
+
     await logToFile("success", fileId, response.data);
     return response.data;
   } catch (error) {
@@ -52,4 +52,4 @@ const refineFile = async (fileId, dataEncryptionKey) => {
 
 module.exports = {
   refineFile
-}; 
+};
