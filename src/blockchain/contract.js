@@ -19,12 +19,39 @@ const initializeContract = () => {
 
   // Create a provider with network information and ENS disabled
   const network = {
-    chainId: 14800, // Correct chain ID for Vana network
+    chainId: 1480, // Correct chain ID for Vana network
   };
 
   provider = new ethers.providers.JsonRpcProvider(CONFIG.rpcUrl, network);
   console.log(`Connected to DataRegistry contract at ${CONFIG.dataRegistryAddress}`);
 };
+
+/**
+ * Retrieves the file ID stored at a given index in the registry
+ * @param {ethers.BigNumber|number} index – Position in the files list
+ * @returns {ethers.BigNumber|null} – The fileId at that index, or null on failure
+ */
+const getFileAtIndex = async (index) => {
+  try {
+    const iface = new ethers.utils.Interface([
+      "function filesListAt(uint256 index) view returns (uint256)",
+    ]);
+    const data = iface.encodeFunctionData("filesListAt", [index]);
+    const result = await provider.call({
+      to: CONFIG.dlpAddress,
+      data,
+    });
+    if (result && result !== "0x") {
+      const [fileId] = iface.decodeFunctionResult("filesListAt", result);
+      return fileId; // ethers.BigNumber
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching file at index ${index}: ${error.message}`);
+    return null;
+  }
+};
+
 
 /**
  * Decrypts the Encrypted Encryption Key (EEK) using the DLP Private Key
@@ -214,5 +241,6 @@ module.exports = {
   initializeContract,
   decryptEEK,
   getFilePermissions,
-  checkFileRefinement
+  checkFileRefinement,
+  getFileAtIndex
 }; 

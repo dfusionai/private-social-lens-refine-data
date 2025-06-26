@@ -2,7 +2,7 @@
  * Processor module for batch refinement
  */
 const { logToFile, logStats } = require('./logs/logger');
-const { getFilePermissions, decryptEEK, checkFileRefinement } = require('./blockchain/contract');
+const { getFilePermissions, decryptEEK, checkFileRefinement, getFileAtIndex } = require('./blockchain/contract');
 const { refineFile } = require('./api/refinement');
 
 /**
@@ -168,9 +168,72 @@ const processBatch = async (startId, endId) => {
   await processBatchWithStats(startId, endId);
 };
 
+/**
+ * Processes a batch of arbitrary file IDs, updating statistics as it goes
+ * @param {ethers.BigNumber[]|number[]} fileIds – Array of file IDs to process
+ * @returns {object} – Statistics for this batch
+ */
+const processFilesBatchWithStats = async (fileIds) => {
+  console.log(`Processing batch of ${fileIds.length} files`);
+  const batchStats = { alreadyRefined: 0, processed: 0, failed: 0, success: 0 };
+  const tasks = fileIds.map(idBN =>
+    processFileWithStats(idBN.toNumber(), batchStats)
+  );
+  await Promise.all(tasks);
+  return batchStats;
+};
+
+/**
+ * Runs the batch processing for a range of list indices
+ * @param {number} startIndex – Starting list index
+ * @param {number} endIndex   – Ending list index
+ * @param {number} batchSize  – How many indices to resolve per sub-batch
+ * @returns {object}          – Overall statistics
+ */
+const runBatchProcessingByIndex = async (startIndex, endIndex, batchSize) => {
+  console.log(
+    `Starting batch refinement for indices ${startIndex}→${endIndex} (batchSize=${batchSize})`
+  );
+  const stats = {
+    total: startIndex - endIndex + 1,
+    alreadyRefined: 0,
+    processed: 0,
+    failed: 0,
+    success: 0,
+  };
+
+  for (let idx = startIndex; idx >= endIndex; idx -= batchSize) {
+    const batchEndIdx = Math.max(endIndex, idx - batchSize + 1);
+    // resolve all fileIds in this index-range
+    const fileIds = [];
+    for (let i = idx; i >= batchEndIdx; i--) {
+      const idBN = await getFileAtIndex(i);
+      if (idBN) fileIds.push(idBN);
+      else {
+        console.warn(`No fileId at index ${i}`); 
+        stats.failed++;
+      }
+    }
+    // process them
+    const batchStats = await processFilesBatchWithStats(fileIds);
+    // merge
+    stats.alreadyRefined += batchStats.alreadyRefined;
+    stats.processed      += batchStats.processed;
+    stats.failed         += batchStats.failed;
+    stats.success        += batchStats.success;
+
+    await logStats(batchStats, idx, batchEndIdx, "PROGRESS");
+  }
+
+  await logStats(stats, startIndex, endIndex, "COMPLETE");
+  return stats;
+};
+
+
 module.exports = {
   processFile,
   processBatch,
   processBatchWithStats,
-  runBatchProcessing
+  runBatchProcessing,
+  runBatchProcessingByIndex
 }; 

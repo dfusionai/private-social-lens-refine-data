@@ -5,7 +5,7 @@ const { setupLogging, initializeStatsLog } = require('./logs/logger');
 const { initializeContract } = require('./blockchain/contract');
 const { parseArgs, showHelpMessage } = require('./utils/cli');
 const { validateConfig } = require('./utils/config');
-const { runBatchProcessing, processFile, processBatch } = require('./processor');
+const { runBatchProcessing, processFile, processBatch, runBatchProcessingByIndex} = require('./processor');
 
 /**
  * Main function to run the batch refinement process
@@ -33,7 +33,7 @@ const main = async () => {
     await initializeStatsLog(startId, endId, batchSize);
     
     // Run the batch processing
-    await runBatchProcessing(startId, endId, batchSize);
+    await runBatchProcessingByIndex(startId, endId, batchSize);
   } catch (error) {
     console.error(`Batch refinement failed: ${error.message}`);
     process.exit(1);
