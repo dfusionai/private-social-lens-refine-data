@@ -19,7 +19,7 @@ const initializeContract = () => {
 
   // Create a provider with network information and ENS disabled
   const network = {
-    chainId: 1480, // Correct chain ID for Vana network
+    chainId: 1480, // TODO - NEED TO FIX HARDCODING
   };
 
   provider = new ethers.providers.JsonRpcProvider(CONFIG.rpcUrl, network);
@@ -243,4 +243,4 @@ module.exports = {
   getFilePermissions,
   checkFileRefinement,
   getFileAtIndex
-}; 
+};
